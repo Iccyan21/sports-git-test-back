@@ -1,0 +1,22 @@
+{
+    "title": "Sample Archive",
+    "subtitle": "Sample Subtitle",
+    "description": "Sample Description",
+    "movies": [
+        {"title": "Movie 1", "video": "path/to/video1.mp4"},
+        {"title": "Movie 2", "video": "path/to/video2.mp4"}
+    ]
+}
+
+
+ユーザーごとにユニークなタイトルを強制:
+同じユーザーは同じタイトルのArchiveを持つことができませんが、異なるユーザーは同じタイトルを持つことができます。
+
+Djangoのモデルでこれを実現するには、unique_togetherを使用します。
+
+class Archive(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    
+    class Meta:
+        unique_together = ['user', 'title']
