@@ -19,7 +19,7 @@ class Movie(models.Model):
     video = models.FileField(upload_to='movies/')
     
     def __str__(self):
-        return str(self.title)
+        return str(self.archive)
     
     class Meta:
         verbose_name = '動画'
