@@ -71,42 +71,37 @@ class ArchiveEditAPIView(views.APIView):
 
         serializer = ArchiveSerializer(archive, data=request.data)
         
-        print(serializer)
-        
         if serializer.is_valid():
-            archive.title = serializer.validated_data.get('title', archive.title)
-            archive.subtitle = serializer.validated_data.get('subtitle', archive.subtitle)
-            archive.description = serializer.validated_data.get('description', archive.description)
+            archive_data = serializer.validated_data
+            archive.title = archive_data['title']
+            archive.subtitle = archive_data['subtitle']
+            archive.description = archive_data['description']
             archive.save()
-            
-            # Movieデータの更新処理
-            movies_data = request.data.get('movies', [])
 
-            # 既存のMovieタイトルのリストを取得
-            existing_movie_titles = set(Movie.objects.filter(archive=archive).values_list('title', flat=True))
-            
-            submitted_movie_titles = set([movie_data["title"] for movie_data in movies_data if "title" in movie_data])
+            # 既存のMovieオブジェクトをキャッシュしておく
+            existing_movies = {movie.title: movie for movie in Movie.objects.filter(archive=archive)}
 
-            # 削除されたMovieを検出して削除
-            movies_to_delete = existing_movie_titles - submitted_movie_titles
-            Movie.objects.filter(archive=archive, title__in=movies_to_delete).delete()
+            for movie_data in archive_data['movies']:
+                title = movie_data.get('title')
+                if title in existing_movies:
+                    # 既存のMovieオブジェクトを更新
+                    movie = existing_movies[title]
+                    for key, value in movie_data.items():
+                        setattr(movie, key, value)
+                    movie.save()
+                    del existing_movies[title]  # 更新されたMovieはキャッシュから削除
+                else:
+                    # 新しいMovieオブジェクトを作成
+                    Movie.objects.create(archive=archive, **movie_data)
 
-            for movie_data in movies_data:
-                if "title" in movie_data:
-                    movie_title = movie_data["title"]
-                    try:
-                        movie = Movie.objects.get(archive=archive, title=movie_title)
-                        for key, value in movie_data.items():
-                            setattr(movie, key, value)
-                        movie.save()
-                    except Movie.DoesNotExist:
-                        # Movieが存在しない場合は新しいMovieを作成
-                        movie = Movie(archive=archive, **movie_data)
-                        movie.save()
+            # 未使用の既存のMovieオブジェクトを削除
+            for movie in existing_movies.values():
+                movie.delete()
 
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 #Archive削除
