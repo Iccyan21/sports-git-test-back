@@ -14,7 +14,7 @@ class Archive(models.Model):
         verbose_name_plural = 'アーカイブ'
 
 class Movie(models.Model):
-    archive = models.ForeignKey(Archive, on_delete=models.PROTECT, to_field='archiveid', related_name='movies')
+    archive = models.ForeignKey(Archive, on_delete=models.CASCADE, to_field='archiveid', related_name='movies')
     title = models.CharField(max_length=20)
     video = models.FileField(upload_to='movies/')
     
