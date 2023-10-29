@@ -20,3 +20,10 @@ class Archive(models.Model):
     
     class Meta:
         unique_together = ['user', 'title']
+
+
+
+
+
+#　変わってる部分だけ変える処理を入れる
+# フロントエンド

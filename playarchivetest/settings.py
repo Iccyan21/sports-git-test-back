@@ -53,6 +53,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'playarchive.path_to_file_middleware.PathToFileMiddleware',
 ]
 
 ROOT_URLCONF = "playarchivetest.urls"

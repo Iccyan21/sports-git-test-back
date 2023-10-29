@@ -11,6 +11,3 @@ urlpatterns = [
     path('delete/<str:title>/',ArchiveDeleteAPIView.as_view(), name='archive-delete-api'),
     path('create-movie/', MovieCreateView.as_view(), name='create_movie'),
 ]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -5,6 +5,8 @@ from .serializers import ArchiveSerializer, MovieSerializer
 from rest_framework.response import Response
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from rest_framework.parsers import MultiPartParser
+from django.core.files.uploadedfile import UploadedFile
 
 # Archive表示
 class ArchiveViewSet(views.APIView):
@@ -20,6 +22,9 @@ class ArchiveViewSet(views.APIView):
 class ArchiveCreateView(views.APIView):
     def post(self, request):
         serializer = ArchiveSerializer(data=request.data)
+        
+        print(serializer)
+        
         if serializer.is_valid():
             archive_data = serializer.validated_data
             archive = Archive.objects.create(
@@ -67,40 +72,56 @@ class ArchiveEditAPIView(views.APIView):
     def put(self, request, title):
         archive = self.get_object(title)
         if archive is None:
+            print('sss')
             return Response({"error": "Archive not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        parser_classes = (MultiPartParser, )
+        parsed_data = request.data
 
-        serializer = ArchiveSerializer(archive, data=request.data)
+        # partial=Trueを追加して部分的な更新を可能にします
+        serializer = ArchiveSerializer(archive, data=parsed_data, partial=True)
+        
+        print(serializer)
         
         if serializer.is_valid():
             archive_data = serializer.validated_data
-            archive.title = archive_data['title']
-            archive.subtitle = archive_data['subtitle']
-            archive.description = archive_data['description']
-            archive.save()
-
-            # 既存のMovieオブジェクトをキャッシュしておく
+            
+             # titleの変更をここでチェックして保持します
+            new_title = archive_data.get('title')
+                
+            # まず、existing_moviesを取得します
             existing_movies = {movie.title: movie for movie in Movie.objects.filter(archive=archive)}
 
-            for movie_data in archive_data['movies']:
+            # 次に、archiveの更新を行います
+            for field, value in archive_data.items():
+                if field != 'movies':
+                    setattr(archive, field, value)
+            archive.save()
+
+
+            existing_movies = {movie.title: movie for movie in Movie.objects.filter(archive=archive)}
+
+            for movie_data in archive_data.get('movies', []):
                 title = movie_data.get('title')
                 if title in existing_movies:
-                    # 既存のMovieオブジェクトを更新
                     movie = existing_movies[title]
                     for key, value in movie_data.items():
+                        # 新しいvideoファイルが提供されていない場合、そのvideoフィールドの更新をスキップ
+                        if key == 'video' and not isinstance(value, UploadedFile):
+                            continue
                         setattr(movie, key, value)
                     movie.save()
-                    del existing_movies[title]  # 更新されたMovieはキャッシュから削除
+                    del existing_movies[title]
                 else:
-                    # 新しいMovieオブジェクトを作成
                     Movie.objects.create(archive=archive, **movie_data)
 
-            # 未使用の既存のMovieオブジェクトを削除
             for movie in existing_movies.values():
                 movie.delete()
 
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 
