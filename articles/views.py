@@ -39,12 +39,6 @@ class ArticleListCreateView(views.APIView):
                     serializer.validated_data['tags'] = [tag]  # タグのリストとして設定
                 except Tag.DoesNotExist:
                     return Response({"error": f"Tag '{tag_name}' not found"}, status=status.HTTP_400_BAD_REQUEST)
-
-
-                
-                
-            
-
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -80,4 +74,19 @@ class TagViewSet(views.APIView):
         posts = self.get_queryset()
         
         serializer = TagSerializer(posts, many=True)
+        return Response(serializer.data)
+    
+class ArticleCategoryViewSet(views.APIView):
+    def get_queryset(self, category_name):
+        return Article.objects.filter(category__name=category_name)
+
+    def get(self, request, *args, **kwargs):
+        category_name = kwargs.get('category', None)
+        
+        if not category_name:
+            return Response({'error': 'Category not provided.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        posts = self.get_queryset(category_name)
+        
+        serializer = ArticleSerializer(posts, many=True)
         return Response(serializer.data)
